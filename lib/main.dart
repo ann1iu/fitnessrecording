@@ -1,59 +1,42 @@
+import 'package:fitnessrecording/data/database.dart';
 import 'package:flutter/material.dart';
-
-import './storage/file_operator.dart';
+import 'package:drift/drift.dart';
+import './data/database.dart ';
 
 void main() {
-  runApp(const MyApp());
-}
+  final db = AppDatabase();
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      // home: const MyHomePage(title: 'Flutter Demo Home Page'),
-      home: Center(
-        child: ElevatedButton(onPressed: _demo, 
-        child: const Text("点我写入 & 读取"),),
+  await db.WorkoutDao.insertWorkoutSession(
+    WorkoutSessionsCompanion.insert(
+      startTime: DateTime.now(),
+      duration: Value(60),
+      totalSets: 10,
+      notes: Value('test data')
+    ),
+    [
+      ExercisesRecordsCompanion.insert(
+        exercise: 1,
+        sets: 5,
+        repsPerSet: Value(10),
+        weight: Value(50.0),
+        maxWeight: Value(60.0),
+        duration: Value(15.0),
+        restTime: Value(60),
+        notes: Value('test exercise')
       )
-    );
-  }
-
-  Future<void> _demo() async {
-    final list = await readWorkouts();
-    debugPrint('读到的数据: ${list.toString()}');
-    list.add({
-      "id": DateTime.now().millisecondsSinceEpoch.toString(),
-      "date": DateTime.now().toIso8601String(),
-      "title":"测试数据",
-      "exercises": [
-        {
-          "name": "深蹲",
-          "sets": [
-            {"weight": 100, "reps": 10},
-            {"weight": 100, "reps": 8},
-            {"weight": 100, "reps": 6}
-          ]
-        },
-        {
-          "name": "卧推",
-          "sets": [
-            {"weight": 80, "reps": 10},
-            {"weight": 80, "reps": 8},
-            {"weight": 80, "reps": 6}
-          ]
-        }
-      ]
-    });
-    await writeWorkouts(list);
-    debugPrint('写入成功');
-  }
+    ],
+    [
+      List.generate(5, (index) => SetRecordsCompanion.insert(
+        exerciseRecordId: 1,
+        setNumber: index + 1,
+        reps: Value(10),
+        weight: Value(50.0 + index * 2),
+        duration: Value(3.0),
+        restTime: Value(60),
+        notes: Value('set ${index + 1}')
+      ))
+    ]
+  );
 }
 
 // class MyHomePage extends StatefulWidget {

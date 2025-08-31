@@ -2,7 +2,9 @@ import 'dart:ffi';
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 
 part 'database.g.dart';
@@ -64,7 +66,7 @@ class WorkoutSessions extends Table { // 训练记录表 单日训练
 class ExercisesRecords extends Table { //健身动作表 // 一次健身中的一个动作
   IntColumn get id => integer().autoIncrement()(); // 主键，自增
   IntColumn get sessionId => integer().references(WorkoutSessions,#id)(); // 外键，关联训练记录表
-  IntColumn get exercise => integer().references(AnaerobicTypes, #id)(); // 动作编号
+  IntColumn get exerciseId => integer().references(AnaerobicTypes, #id)(); // 动作编号
   IntColumn get sets => integer()(); // 组数
   IntColumn? get repsPerSet => integer().nullable()(); // 每组次数
   RealColumn? get weight => real().nullable()(); // 使用重量，单位kg
@@ -86,10 +88,10 @@ class SetRecords extends Table { // 每组记录表
 }
 
 // ======DAO部分======
-
+@DriftAccessor(tables: [WorkoutSessions, ExercisesRecords, SetRecords, AnaerobicTypes, MuscleGroups])
 class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
   
-  WorkoutDao(AppDatabase db) : super(db);
+  WorkoutDao(super.db);
 
   // 插入新的训练记录
   Future<int> insertWorkoutSession(
@@ -117,17 +119,17 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
     if (sessionQuery == null) {
       return Future.value(null);
     }
-    final exercisesQuery = await (select(db.exercisesRecords)
-      ..where((t) => t.sessionId.equals(id))).get();
     
-    final exercisersQuery = select(db.exercisesRecords).join([
-      innerJoin(exercises, exercies.id.equalsExp(exercisesRecords.exercise)), // 连接动作表
-      innerJoin(muscleGroups,muscleGroups().id.equalsExp(exercises.muscleGroupId)), // 连接肌肉群表
-    ]);
+    final exercisesQuery = await( select(db.exercisesRecords)
+      .join([
+        innerJoin(db.anaerobicTypes, db.exercisesRecords.exerciseId.equalsExp(db.anaerobicTypes.id)), // 连接动作表
+        innerJoin(db.muscleGroups,db.muscleGroups.id.equalsExp(db.anaerobicTypes.muscleGroupId)), // 连接肌肉群表
+      ])
+      ..where(db.exercisesRecords.sessionId.equals(id))).get();
 
     final setsQuery = await (select(db.setRecords)
-      ..where((t) => t.exerciseRecordId.isIn(exercisesQuery.map((e) => e.id).toList()))).get();
-    
+      ..where((t) => t.exerciseRecordId.isIn(exercisesQuery.map((e) => e.readTable(db.exercisesRecords).id)))).get();
+
     final groupedSets = <int, List<SetRecord>>{};
     for (final set in setsQuery) {
       groupedSets.putIfAbsent(set.exerciseRecordId, () => []).add(set);
@@ -136,8 +138,10 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
     return FullWorkout(
       session: sessionQuery,
       exercises: exercisesQuery.map((e) => FullExercise(
-        exercise: e,
-        sets: groupedSets[e.id] ?? [],
+        exercise: e.readTable(db.exercisesRecords),
+        sets: groupedSets[e.readTable(db.exercisesRecords).id] ?? [],
+        anaerobicType: e.readTableOrNull(db.anaerobicTypes),
+        muscleGroup: e.readTableOrNull(db.muscleGroups),
       )).toList(),
     );
   }
@@ -177,14 +181,115 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
   tables: [MuscleGroups, AnaerobicTypes, WorkoutSessions, ExercisesRecords, SetRecords],
   daos: [WorkoutDao],
 )
-
+class AppDatabase extends _$AppDatabase { 
 // ======数据库部分======
-
-class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
   int get schemaVersion => 1;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await m.createAll();
+      // 在这里可以添加初始数据插入逻辑
+    },
+    onUpgrade: (m, from, to) async {
+      // 在这里可以添加数据库升级逻辑
+    },
+    beforeOpen: (details) async {
+      if (details.wasCreated) {
+        // 在这里可以添加数据库创建后的逻辑
+      }
+    },
+  );
+
+  static Future<void> initializeDatabase(AppDatabase db) async {
+    // 在这里可以添加数据库初始化
+    // 1. 插入肌肉群
+    final mgMap = <String, int>{};
+    final muscleGroups = [
+      'chest', // 胸
+      'back',  // 背中
+      'legs',  // 腿
+      'arms',  // 手臂
+      'shoulders', // 肩膀
+      'core',  // 核心
+      'body', // 全身
+    ];
+    for (final name in muscleGroups) {
+      final id = await db.into(db.muscleGroups).insert(MuscleGroupsCompanion.insert(name: name));
+      mgMap[name] = id;
+    }
+
+    // 2. 插入无氧运动类型
+    final anaerobicTypes = {
+      'Pull-Up':'back', // 引体向上
+      'Lat Pulldown': 'back', // 下拉
+      'Bent-Over Row': 'back', // 俯身划船
+      'Dumbbell Row':'back', // 哑铃划船
+
+      'Dombbell Reverse  Fly': 'shoulders', // 俯身飞鸟
+      'Machine Reverse Fly': 'shoulders', // 器械反向飞鸟
+
+      'Bicep Curl': 'arms', // 二头肌弯举
+      'barbell Curl': 'arms', // 杠铃弯举
+      'Dombbell Curl': 'arms', // 哑铃弯举
+      'Dumbbell Concentration Curl': 'arms', // 哑铃集中弯举
+      'Pastorns stol Curl': 'arms', // 牧师椅弯举
+
+      'BarBell Bench Press': 'chest', // 杠铃卧推
+      'Dumbbell Bench Press': 'chest', // 哑铃卧推
+      'Incline Bench Press': 'chest', // 上斜卧推
+      'Push-Up': 'chest', // 俯卧撑
+      'Pec Deck Machine': 'chest', // 蝴蝶机夹胸
+
+      'Barbell Incline Press': 'shoulders', // 杠铃上斜推举
+      'Dumbbell Incline Press': 'shoulders', // 哑铃上斜推举
+      'Arnold Press': 'shoulders', // 阿诺德推举
+      'Front Raise': 'shoulders', // 前平举
+      'Shrug': 'shoulders', // 耸肩
+      'Upright Row': 'shoulders', // 直立划船
+      'Shoulder Press': 'shoulders', // 肩推
+      'Lateral Raise': 'shoulders', // 侧平举
+
+      'Narrow Grip Bench Press': 'arms', // 窄距卧推
+      'Tricep Dip': 'arms', // 三头肌下压
+      'Tricep Pushdown': 'arms', // 绳索下压
+      'Barbell triceps Extension': 'arms', // 杠铃三头肌臂屈伸
+      'Dumbbell Triceps Extension': 'arms', // 哑铃三头肌臂屈伸
+      'Triceps cable press down': 'arms', // 绳索三头肌下压
+      'Tricep Extension': 'arms', // 三头肌伸展
+
+      'BarBell Squat': 'legs', // 杠铃深蹲
+      'Dumbbell Squat': 'legs', // 哑铃深蹲
+      'Deadlift': 'back', // 硬拉
+      
+      'Crunches': 'core', // 卷腹
+      'Plank': 'core', // 平板支撑
+      'Russian Twists': 'core', // 俄罗斯转体
+      'Leg Raises': 'core', // 抬腿
+      'Hanging Leg Raises': 'core', // 悬垂抬腿
+      'Kneeling Crunches': 'core', // 跪姿卷腹
+      'Mountain Climbers': 'core', // 登山者
+      'Bicycle Crunches': 'core', // 自行车卷腹
+      'Sit-Ups': 'core', // 仰卧起坐
+      // ['Other', 'others'], // 其他
+      // [link](https://www.bodybuilding.com/exercises/finder/sort/popularity/target/muscle/arms)
+      // [link](https://zhuanlan.zhihu.com/p/245677109)
+      // [link](https://www.zhihu.com/question/23167354)
+    };
+
+    for (final entry in anaerobicTypes.entries) {
+      final name = entry.key;
+      final mgName = entry.value;
+      final mgId = mgMap[mgName]!;
+      await db.into(db.anaerobicTypes).insert(AnaerobicTypesCompanion.insert(
+        name: name,
+        muscleGroupId: mgId,
+      ));
+    }
+  }
 
   // 在这里可以添加数据库初始化或迁移逻辑
   static LazyDatabase _openConnection() {
@@ -197,7 +302,7 @@ class AppDatabase extends _$AppDatabase {
         await file.create(recursive: true);
       }
 
-      return FlutterQueryExecutor(file: file, logStatements: true);
+      return NativeDatabase(file, logStatements: kDebugMode);
     });
   }
 
@@ -206,7 +311,7 @@ class AppDatabase extends _$AppDatabase {
       return _openConnection();
     } else {
       final file = File(path);
-      return FlutterQueryExecutor(file: file, logStatements: true);
+      return NativeDatabase(file, logStatements: kDebugMode);
     }
   }
 
@@ -216,10 +321,14 @@ class AppDatabase extends _$AppDatabase {
 class FullExercise {
   final ExercisesRecord exercise;
   final List<SetRecord> sets;
+  final AnaerobicType? anaerobicType;
+  final MuscleGroup? muscleGroup;
 
   const FullExercise({
     required this.exercise,
     required this.sets,
+    this.anaerobicType,
+    this.muscleGroup,
   });
 }
 
