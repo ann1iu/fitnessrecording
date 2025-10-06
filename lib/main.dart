@@ -1,42 +1,10 @@
-import 'package:fitnessrecording/data/database.dart';
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart';
-import './data/database.dart ';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'app.dart';
+
 
 void main() {
-  final db = AppDatabase();
-
-  await db.WorkoutDao.insertWorkoutSession(
-    WorkoutSessionsCompanion.insert(
-      startTime: DateTime.now(),
-      duration: Value(60),
-      totalSets: 10,
-      notes: Value('test data')
-    ),
-    [
-      ExercisesRecordsCompanion.insert(
-        exercise: 1,
-        sets: 5,
-        repsPerSet: Value(10),
-        weight: Value(50.0),
-        maxWeight: Value(60.0),
-        duration: Value(15.0),
-        restTime: Value(60),
-        notes: Value('test exercise')
-      )
-    ],
-    [
-      List.generate(5, (index) => SetRecordsCompanion.insert(
-        exerciseRecordId: 1,
-        setNumber: index + 1,
-        reps: Value(10),
-        weight: Value(50.0 + index * 2),
-        duration: Value(3.0),
-        restTime: Value(60),
-        notes: Value('set ${index + 1}')
-      ))
-    ]
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 // class MyHomePage extends StatefulWidget {

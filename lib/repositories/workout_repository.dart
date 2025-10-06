@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import '../data/database.dart';
 
+// Use FullWorkout from database.dart
+
 class WorkoutRepository {
   final AppDatabase _database;
 
@@ -8,34 +10,24 @@ class WorkoutRepository {
 
 
   Future<int> insertWorkoutSession( // 插入一次训练
-      WorkoutSessionsCompanion workoutSession,
-      List<ExercisesRecordsCompanion> exercises,
-      List<List<SetRecordsCompanion>> sets) async {
+      WorkoutSession workoutSession,
+      List<ExercisesRecord> exercises,
+      List<List<SetRecord>> sets) async {
     return await _database.transaction(() async {
       final workoutSessionId =
-          await _database.insertWorkoutSession(workoutSession, exercises, sets);
+          await _database.workoutDao.insertWorkoutSession(workoutSession,exercises,sets);
       return workoutSessionId;
     });
   }
 
-  Future<List<WorkoutSessionWithDetails>> getAllWorkoutSessions() async { // 获取所有训练
+  Future<List<WorkoutSession>> getAllWorkoutSessions() async { // 获取所有训练
     return await _database.workoutDao.getAllWorkoutSessions();
   }
 
-  Future<WorkoutSessionWithDetails?> getWorkoutSessionById(int id) async { // 根据ID获取某次训练
-    return await _database.workoutDao.getWorkoutSessionById(id);
+  Future<FullWorkout?> getWorkoutSessionById(int id) { // 根据ID获取某次训练
+    return _database.workoutDao.getWorkoutSession(id);
   }
 
-  Future<int> updateWorkoutSession(
-      int id,
-      WorkoutSessionsCompanion workoutSession,
-      List<ExercisesRecordsCompanion> exercises,
-      List<List<SetRecordsCompanion>> sets) async {
-    return await _database.transaction(() async {
-      final rowsAffected = await _database.workoutDao.updateWorkoutSession(id, workoutSession, exercises, sets);
-      return rowsAffected;
-    });
-  }
 
   Future<int> deleteWorkoutSession(int id) async {
     return await _database.transaction(() async {
@@ -47,7 +39,7 @@ class WorkoutRepository {
   Stream<List<FullWorkout>> watchWorkouts({DateTime? from, DateTime? to,int? muscleGroupId}) {
     var query = _database.select(_database.workoutSessions).join([ // 每日动作记录
       leftOuterJoin(_database.exercisesRecords, _database.exercisesRecords.sessionId.equalsExp(_database.workoutSessions.id)), // 连接运动动作记录
-      leftOuterJoin(_database.anaerobicTypes, _database.anaerobicTypes.id.equalsExp(_database.exercisesRecords.exercise)), // 连接动作表
+      leftOuterJoin(_database.anaerobicTypes, _database.anaerobicTypes.id.equalsExp(_database.exercisesRecords.exerciseId)), // 连接动作表
       leftOuterJoin(_database.muscleGroups, _database.muscleGroups.id.equalsExp(_database.anaerobicTypes.muscleGroupId))
     ]);
 
@@ -75,9 +67,10 @@ class WorkoutRepository {
         if (exerciseRecord != null) {
 
           workoutMap[workoutSession.id]!.exercises.add(FullExercise(
-            exerciseRecord: exerciseRecord,
+            exercise: exerciseRecord,
+            sets: [], // Sets can be fetched separately if needed
             anaerobicType: anaerobicType,
-            sets: [],
+            muscleGroup: muscleGroup,
           ));
         }
       }
@@ -89,28 +82,4 @@ class WorkoutRepository {
   Future<List<MuscleGroup>> getAllMuscleGroups() async {
     return await _database.select(_database.muscleGroups).get();
   }
-}
-
-class FullExercise {
-  final ExercisesRecord exercise;
-  final List<SetRecord> sets;
-  final AnaerobicType? anaerobicType;
-  final MuscleGroup? muscleGroup;
-
-  const FullExercise({
-    required this.exercise,
-    required this.sets,
-    this.anaerobicType,
-    this.muscleGroup,
-  });
-}
-
-class FullWorkout {
-  final WorkoutSession session;
-  final List<FullExercise> exercises;
-
-  const FullWorkout({
-    required this.session,
-    required this.exercises,
-  });
 }
