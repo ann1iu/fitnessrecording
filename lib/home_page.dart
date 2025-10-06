@@ -8,8 +8,6 @@ class HomePage extends ConsumerWidget{
   @override
   Widget build(BuildContext context, WidgetRef ref) {
 
-    print(wsp.workoutStreamProvider);
-
     var w = wsp.WorkoutFilter(
       from: DateTime.now().subtract(const Duration(days: 7)),
       to: DateTime.now(),
@@ -42,8 +40,8 @@ class HomePage extends ConsumerWidget{
           _showSnack(context, 'Add workout button pressed');
           // Navigate to add workout page
         },
-        child: const Icon(Icons.add),
         tooltip: 'Add Workout',
+        child: const Icon(Icons.add),
       ),
     );
   }

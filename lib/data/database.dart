@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
+import 'package:logging/logging.dart';
 
 part 'database.g.dart';
 
@@ -189,7 +190,9 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
+      print("创建数据库");
       await m.createAll();
+      await initializeDatabase(this);
       // 在这里可以添加初始数据插入逻辑
     },
     onUpgrade: (m, from, to) async {
@@ -205,6 +208,7 @@ class AppDatabase extends _$AppDatabase {
   static Future<void> initializeDatabase(AppDatabase db) async {
     // 在这里可以添加数据库初始化
     // 1. 插入肌肉群
+    print("初始化数据库");
     final mgMap = <String, int>{};
     final muscleGroups = [
       'chest', // 胸
@@ -291,6 +295,7 @@ class AppDatabase extends _$AppDatabase {
 
   // 在这里可以添加数据库初始化或迁移逻辑
   static LazyDatabase _openConnection() {
+    // Logger('drift').level = Level.WARNING; // 设置日志级别
     return LazyDatabase(() async {
       final dbFolder = await getApplicationDocumentsDirectory();
       final file = File(p.join(dbFolder.path, 'fitness_recording.sqlite'));
