@@ -43,6 +43,9 @@ class WorkoutRepository {
       leftOuterJoin(_database.muscleGroups, _database.muscleGroups.id.equalsExp(_database.anaerobicTypes.muscleGroupId))
     ]);
 
+    from = from?.toUtc();
+    to = to?.toUtc();
+
     if (from != null) {
       query.where(_database.workoutSessions.startTime.isBiggerOrEqualValue(from));
     }

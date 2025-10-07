@@ -190,7 +190,6 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
-      print("创建数据库");
       await m.createAll();
       await initializeDatabase(this);
       // 在这里可以添加初始数据插入逻辑
@@ -208,7 +207,7 @@ class AppDatabase extends _$AppDatabase {
   static Future<void> initializeDatabase(AppDatabase db) async {
     // 在这里可以添加数据库初始化
     // 1. 插入肌肉群
-    print("初始化数据库");
+    debugPrint("初始化数据库");
     final mgMap = <String, int>{};
     final muscleGroups = [
       'chest', // 胸
@@ -291,11 +290,70 @@ class AppDatabase extends _$AppDatabase {
         muscleGroupId: mgId,
       ));
     }
+
+    // 3. 插入一次训练的数据
+
+    final sessionId = await db.into(db.workoutSessions).insert(WorkoutSessionsCompanion.insert(
+      startTime: Value(DateTime.now().subtract(const Duration(days: 1))),
+      endTime: Value(DateTime.now().subtract(const Duration(days: 1)).add(const Duration(hours: 1))),
+      duration: const Value(60),
+      totalSets: 5,
+      notes: const Value('这是一次示例训练'),
+    ));
+
+    // 4. 插入一次训练相关的动作和组数据
+
+    final exercise1Id = await db.into(db.exercisesRecords).insert(ExercisesRecordsCompanion.insert(
+      sessionId: sessionId,
+      exerciseId: 1, // 假设1是某个有效的AnaerobicType ID
+      sets: 3,
+      repsPerSet: const Value(10),
+      weight: const Value(50.0),
+      maxWeight: const Value(60.0),
+      duration: const Value(15.0),
+      restTime: const Value(60),
+      notes: const Value('这是第一个动作的备注'),
+    ));
+
+    final setRecords = [
+      SetRecordsCompanion.insert(
+        exerciseRecordId: exercise1Id,
+        setNumber: 1,
+        reps: const Value(10),
+        weight: const Value(50.0),
+        duration: const Value(5.0),
+        restTime: const Value(60),
+        notes: const Value('第一组备注'),
+      ),
+      SetRecordsCompanion.insert(
+        exerciseRecordId: exercise1Id,
+        setNumber: 2,
+        reps: const Value(10),
+        weight: const Value(50.0),
+        duration: const Value(5.0),
+        restTime: const Value(60),
+        notes: const Value('第二组备注'),
+      ),
+      SetRecordsCompanion.insert(
+        exerciseRecordId: exercise1Id,
+        setNumber: 3,
+        reps: const Value(10),
+        weight: const Value(50.0),
+        duration: const Value(5.0),
+        restTime: const Value(60),
+        notes: const Value('第三组备注'),
+      ),
+    ];
+    for (final setRecord in setRecords) {
+      await db.into(db.setRecords).insert(setRecord);
+    }
+
+    debugPrint("数据库初始化完成");
   }
 
   // 在这里可以添加数据库初始化或迁移逻辑
   static LazyDatabase _openConnection() {
-    // Logger('drift').level = Level.WARNING; // 设置日志级别
+    Logger('drift').level = Level.OFF; // 设置日志级别
     return LazyDatabase(() async {
       final dbFolder = await getApplicationDocumentsDirectory();
       final file = File(p.join(dbFolder.path, 'fitness_recording.sqlite'));
@@ -305,7 +363,7 @@ class AppDatabase extends _$AppDatabase {
         await file.create(recursive: true);
       }
 
-      return NativeDatabase(file, logStatements: kDebugMode);
+      return NativeDatabase(file);
     });
   }
 
@@ -314,7 +372,7 @@ class AppDatabase extends _$AppDatabase {
       return _openConnection();
     } else {
       final file = File(path);
-      return NativeDatabase(file, logStatements: kDebugMode);
+      return NativeDatabase(file);
     }
   }
 
