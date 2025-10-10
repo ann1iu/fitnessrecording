@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'providers/workout_stream_provider.dart' as wsp;
+import '../providers/workout_stream_provider.dart' as wsp;
 
 class HomePage extends ConsumerWidget{
   HomePage({super.key});
@@ -62,27 +62,30 @@ class HomePage extends ConsumerWidget{
           itemCount: list.length,
           itemBuilder: (context, index) {
             final workout = list[index];
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 10,vertical: 5),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            return InkWell(
+              onTap:() => {},
+              child: Card(
+                margin: const EdgeInsets.symmetric(horizontal: 10,vertical: 5),
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.fitness_center,color: Colors.indigo),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Workout ${DateFormat.yMMMd().add_Hm().format(workout.session.startTime)}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      )
-                    ],),
-                    const SizedBox(height: 8),
-                    Text('${workout.exercises.length} exercises',style:Theme.of(context).textTheme.bodySmall),
-                  ],
-                ),
+                      Row(
+                      children: [
+                        const Icon(Icons.fitness_center,color: Colors.indigo),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Workout ${DateFormat.yMMMd().add_Hm().format(workout.session.startTime)}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        )
+                      ],),
+                      const SizedBox(height: 8),
+                      Text('${workout.exercises.length} exercises',style:Theme.of(context).textTheme.bodySmall),
+                    ],
+                  ),
+                )
               )
             );
           },

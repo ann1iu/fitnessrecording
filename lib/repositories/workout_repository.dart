@@ -85,4 +85,39 @@ class WorkoutRepository {
   Future<List<MuscleGroup>> getAllMuscleGroups() async {
     return await _database.select(_database.muscleGroups).get();
   }
+
+  Stream<FullWorkout?> watchWorkoutById(int id) {
+    return Stream.fromFuture(getWorkoutSessionById(id));
+  }
+
+  Future<int> updateFullWorkout(
+      WorkoutSession session,
+      List<ExercisesRecord> exercises,
+      List<List<SetRecord>> setsList) async {
+    return await _database.transaction(() async {
+      // 更新或插入 WorkoutSession
+      final sessionId = session.id == 0
+          ? await _database.workoutDao.insertWorkoutSession(session, exercises, setsList)
+          : await _database.workoutDao.updateWorkoutSession(session);
+
+      // 删除旧的 Exercises 和 Sets
+      await _database.workoutDao.deleteExercisesForSession(sessionId);
+
+      // 插入新的 Exercises 和 Sets
+      for (int i = 0; i < exercises.length; i++) {
+        final exercise = exercises[i];
+        final exerciseId = await _database.workoutDao.insertExercise(
+          exercise.copyWith(sessionId: sessionId),
+        );
+
+        for (final set in setsList[i]) {
+          await _database.workoutDao.insertSet(
+            set.copyWith(exerciseRecordId: exerciseId),
+          );
+        }
+      }
+
+      return sessionId;
+    });
+  }
 }
