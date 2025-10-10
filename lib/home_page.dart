@@ -21,7 +21,22 @@ class HomePage extends ConsumerWidget{
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Fitness Recording Home Page'),
+        title: const Text('Fitness Recording'),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.indigo, Colors.blue],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        actions:[
+          IconButton(
+            onPressed: () => {/* 打开日期筛选*/},
+            icon: const Icon(Icons.calendar_today)
+          )
+        ]
       ),
       body:workouts.when(
         data: (list) => list.isEmpty 
@@ -73,6 +88,30 @@ class HomePage extends ConsumerWidget{
           },
         ),
         loading:() => const Center(child: CircularProgressIndicator()),
+        /**
+        loading: () => ListView.builder(
+          itemCount: 6,
+          itemBuilder: (_, __) => Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Skeleton(width: 48, height: 48, radius: 8),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Skeleton(height: 14),
+                      SizedBox(height: 6),
+                      Skeleton(height: 12, width: 100),
+                    ],
+                  )),
+                ],
+              ),
+            ),
+          ),
+        ),
+         */
         error: (e, st) => Center(child: Text('Error: $e')),
       ),
       floatingActionButton: FloatingActionButton(

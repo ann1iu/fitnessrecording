@@ -207,7 +207,6 @@ class AppDatabase extends _$AppDatabase {
   static Future<void> initializeDatabase(AppDatabase db) async {
     // 在这里可以添加数据库初始化
     // 1. 插入肌肉群
-    debugPrint("初始化数据库");
     final mgMap = <String, int>{};
     final muscleGroups = [
       'chest', // 胸
@@ -292,7 +291,6 @@ class AppDatabase extends _$AppDatabase {
     }
 
     // 3. 插入一次训练的数据
-
     final sessionId = await db.into(db.workoutSessions).insert(WorkoutSessionsCompanion.insert(
       startTime: Value(DateTime.now().subtract(const Duration(days: 1))),
       endTime: Value(DateTime.now().subtract(const Duration(days: 1)).add(const Duration(hours: 1))),
@@ -347,8 +345,7 @@ class AppDatabase extends _$AppDatabase {
     for (final setRecord in setRecords) {
       await db.into(db.setRecords).insert(setRecord);
     }
-
-    debugPrint("数据库初始化完成");
+    
   }
 
   // 在这里可以添加数据库初始化或迁移逻辑
