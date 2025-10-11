@@ -125,7 +125,7 @@ class WorkoutDetailNotifier extends StateNotifier<WorkoutDetailEdit?> {
 
   Future<int> save() async {
     if(state == null) return 0;
-    final sessionId = await _repo.updateFullWorkout(
+    final sessionId = await _repo.updateFullWorkouts(
       state!.session, 
       state!.exercises.map((e) => e.exercise).toList(), 
       state!.exercises.map((e) => e.sets).toList()

@@ -90,34 +90,38 @@ class WorkoutRepository {
     return Stream.fromFuture(getWorkoutSessionById(id));
   }
 
-  Future<int> updateFullWorkout(
-      WorkoutSession session,
-      List<ExercisesRecord> exercises,
-      List<List<SetRecord>> setsList) async {
+  // 更新完整的训练记录（直接使用 FullWorkout 对象）
+  Future<void> updateFullWorkout(FullWorkout fullWorkout) async {
     return await _database.transaction(() async {
-      // 更新或插入 WorkoutSession
-      final sessionId = session.id == 0
-          ? await _database.workoutDao.insertWorkoutSession(session, exercises, setsList)
-          : await _database.workoutDao.updateWorkoutSession(session);
-
-      // 删除旧的 Exercises 和 Sets
-      await _database.workoutDao.deleteExercisesForSession(sessionId);
-
-      // 插入新的 Exercises 和 Sets
-      for (int i = 0; i < exercises.length; i++) {
-        final exercise = exercises[i];
-        final exerciseId = await _database.workoutDao.insertExercise(
-          exercise.copyWith(sessionId: sessionId),
-        );
-
-        for (final set in setsList[i]) {
-          await _database.workoutDao.insertSet(
-            set.copyWith(exerciseRecordId: exerciseId),
-          );
-        }
-      }
-
-      return sessionId;
+      await _database.workoutDao.updateFullWorkout(fullWorkout);
     });
   }
+
+  // 更新完整的训练记录（接收分开的参数）
+  Future<int> updateFullWorkouts(
+      WorkoutSession session,
+      List<ExercisesRecord> exercises,
+      List<List<SetRecord>> sets) async {
+    // 构建 FullWorkout 对象
+    final fullExercises = <FullExercise>[];
+    for (int i = 0; i < exercises.length; i++) {
+      // 注意：这里我们没有 anaerobicType 和 muscleGroup 的详细信息，
+      // 但 DAO 的 updateFullWorkout 方法只需要 exercise 和 sets 信息
+      fullExercises.add(FullExercise(
+        exercise: exercises[i],
+        sets: sets[i],
+        anaerobicType: null,
+        muscleGroup: null,
+      ));
+    }
+    
+    final fullWorkout = FullWorkout(
+      session: session,
+      exercises: fullExercises,
+    );
+    
+    await updateFullWorkout(fullWorkout);
+    return session.id;
+  }
+
 }
