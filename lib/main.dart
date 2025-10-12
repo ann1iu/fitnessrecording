@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'app.dart';
 
+/// 应用入口
 void main() {
   // 捕获Flutter框架错误
   FlutterError.onError = (FlutterErrorDetails details) {

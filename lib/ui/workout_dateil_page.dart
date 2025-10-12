@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+
+/// 训练详情页面
 class WorkoutDetailPage extends ConsumerWidget {
   const WorkoutDetailPage({required this.workoutId, super.key});
   final int workoutId;

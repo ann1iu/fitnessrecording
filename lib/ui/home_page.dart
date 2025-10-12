@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/workout_stream_provider.dart' as wsp;
+import 'app_router.dart';
 
+/// 首页
 class HomePage extends ConsumerWidget{
   HomePage({super.key});
 
@@ -33,7 +35,7 @@ class HomePage extends ConsumerWidget{
         ),
         actions:[
           IconButton(
-            onPressed: () => {/* 打开日期筛选*/},
+            onPressed: () => {/* 打开日期筛选*/}, // Todo: 实现日期筛选
             icon: const Icon(Icons.calendar_today)
           )
         ]
@@ -63,7 +65,7 @@ class HomePage extends ConsumerWidget{
           itemBuilder: (context, index) {
             final workout = list[index];
             return InkWell(
-              onTap:() => {},
+              onTap:() => AppRouter.of(context).push('/detail/${workout.session.id}'),
               child: Card(
                 margin: const EdgeInsets.symmetric(horizontal: 10,vertical: 5),
                 elevation: 2,
