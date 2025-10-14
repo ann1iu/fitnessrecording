@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:fitnessrecording/ui/app_pages.dart';
+import 'package:fitnessrecording/features/fitness/presentation/app_pages.dart';
 
 final AppRouter appRouter = AppRouter._();
 

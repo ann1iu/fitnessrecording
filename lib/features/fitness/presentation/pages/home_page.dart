@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../providers/workout_stream_provider.dart' as wsp;
-import 'app_router.dart';
+import '../provides/workout_stream_provider.dart' as wsp;
+import '../app_router.dart';
 
 /// 首页
 class HomePage extends ConsumerWidget{

@@ -1,6 +1,6 @@
 
-import 'package:fitnessrecording/data/database.dart';
-import 'package:fitnessrecording/providers/respository_provider.dart';
+import 'package:fitnessrecording/core/database/database.dart';
+import 'package:fitnessrecording/features/fitness/presentation/provides/respository_provider.dart';
 import 'package:fitnessrecording/repositories/workout_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';

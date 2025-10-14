@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:fitnessrecording/ui/workout_dateil_page.dart';
-import 'package:fitnessrecording/ui/home_page.dart';
+import 'package:fitnessrecording/features/fitness/presentation/pages/workout_dateil_page.dart';
+import 'package:fitnessrecording/features/fitness/presentation/pages/home_page.dart';
 
 /// 一条路由配置
 class AppPage {

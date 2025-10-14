@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
-import 'package:fitnessrecording/data/database.dart';
-import 'package:fitnessrecording/providers/respository_provider.dart';
-import 'package:fitnessrecording/providers/workout_detail_providers.dart';
+import 'package:fitnessrecording/core/database/database.dart';
+import 'package:fitnessrecording/features/fitness/presentation/provides/respository_provider.dart';
+import 'package:fitnessrecording/features/fitness/presentation/provides/workout_detail_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -18,7 +18,7 @@ class WorkoutDetailPage extends ConsumerWidget {
     final edit = ref.watch(workoutDetailNotifierProvider(workoutId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('训练详情'),
+      appBar: AppBar(title: const Text('fitness detail'),
       actions: [
         IconButton(
           icon: const Icon(Icons.save),
@@ -36,14 +36,22 @@ class WorkoutDetailPage extends ConsumerWidget {
             padding: const EdgeInsets.all(12),
             children: [
               // 1. 顶部 session 信息
-              ListTile(
-                title: Text('开始: ${DateFormat.yMMMd().add_Hm().format(edit.session.startTime)}'),
-                subtitle: Text('总计 ${edit.exercises.length} 动作'),
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[200],
+                ),
+                child: ListTile(
+                  title: Text('Date: ${DateFormat.yMMMd().add_Hm().format(edit.session.startTime)}'),
+                  subtitle: Text('总计 ${edit.exercises.length} 动作'),
+                ),
               ),
               const Divider(),
 
               // 2. 动作列表
               ...edit.exercises.indexed.map((item) {
+                debugPrint("\n\n ** Begining"+item.toString());
                 final exIndex = item.$1;
                 final ex = item.$2;
                 return Card(
@@ -52,16 +60,16 @@ class WorkoutDetailPage extends ConsumerWidget {
                     title: Text(ex.anaerobicType?.name ?? '未知动作'),
                     subtitle: Text('${ex.sets.length} 组'),
                     trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
+                      icon: const Icon(Icons.settings),
                       onPressed: () => ref
                           .read(workoutDetailNotifierProvider(workoutId).notifier)
                           .deleteExercise(exIndex),
                     ),
                     children: [
                       // 组列表
-                      ...ex.sets.indexed.map((sItem) {
-                        final setIndex = sItem.$1;
-                        final set = sItem.$2;
+                      ...ex.sets.indexed.map((Item) {
+                        final setIndex = Item.$1;
+                        final set = Item.$2;
                         return SetRow(
                           set: set,
                           onChanged: (newSet) => ref

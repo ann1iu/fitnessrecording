@@ -110,10 +110,60 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
       });
   }
 
+  // 更新训练记录
+  Future<bool> updateWorkoutSession(WorkoutSession entry) {
+    return update(db.workoutSessions).replace(entry);
+  }
+
+  // 更新训练记录相关的动作和组数据
+  Future<void> updateFullWorkout(FullWorkout fullWorkout) async {
+    return transaction(() async {
+      await update(db.workoutSessions).replace(fullWorkout.session);
+      for (final exercise in fullWorkout.exercises) {
+        await update(db.exercisesRecords).replace(exercise.exercise);
+        for (final set in exercise.sets) {
+          await update(db.setRecords).replace(set);
+        }
+      }
+    });
+  }
+
+  // 删除训练记录
+  Future<int> deleteWorkoutSession(int id) {
+    return (delete(db.workoutSessions)..where((t) => t.id.equals(id))).go();
+  }
+
+  // 获取一组记录
+  Future<SetRecord?> selectSetRecordById(int setId){
+    return (select(db.setRecords)..where((t) => t.id.equals(setId))).getSingleOrNull();
+  }
+
+  // 获取一次训练中一个动作的所有记录
+  Future<FullExercise?> selectFullExercise(int exerciseId) async {
+    final exerciseQuery = await (select(db.exercisesRecords)
+      ..where((t) => t.id.equals(exerciseId))).getSingleOrNull();
+    if (exerciseQuery == null) {
+      return Future.value(null);
+    }
+    final setsQuery = await (select(db.setRecords)
+      ..where((t) => t.exerciseRecordId.equals(exerciseId))).get();
+    final anaerobicTypes = await (select(db.anaerobicTypes) 
+      ..where((t) => t.id.equals(exerciseQuery.exerciseId))).getSingleOrNull();
+    final muscleGroup = await (select(db.muscleGroups)
+        ..where((t) => anaerobicTypes != null ? t.id.equals(anaerobicTypes.muscleGroupId) : const Constant(false))).getSingleOrNull();
+    
+    return FullExercise(
+      exercise: exerciseQuery,
+      sets: setsQuery,
+      anaerobicType: anaerobicTypes,
+      muscleGroup: muscleGroup,
+    );
+  }
+
   // 获取一次训练记录及其相关的动作和组数据
-  Future<FullWorkout?> getWorkoutSession(int id) async{
+  Future<FullWorkout?> getWorkoutSession(int workOutId) async{
     final sessionQuery = await (select(db.workoutSessions)
-      ..where((t) => t.id.equals(id))).getSingleOrNull();
+      ..where((t) => t.id.equals(workOutId))).getSingleOrNull();
     if (sessionQuery == null) {
       return Future.value(null);
     }
@@ -123,7 +173,7 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
         innerJoin(db.anaerobicTypes, db.exercisesRecords.exerciseId.equalsExp(db.anaerobicTypes.id)), // 连接动作表
         innerJoin(db.muscleGroups,db.muscleGroups.id.equalsExp(db.anaerobicTypes.muscleGroupId)), // 连接肌肉群表
       ])
-      ..where(db.exercisesRecords.sessionId.equals(id))).get();
+      ..where(db.exercisesRecords.sessionId.equals(workOutId))).get();
 
     final setsQuery = await (select(db.setRecords)
       ..where((t) => t.exerciseRecordId.isIn(exercisesQuery.map((e) => e.readTable(db.exercisesRecords).id)))).get();
@@ -151,27 +201,37 @@ class WorkoutDao extends DatabaseAccessor<AppDatabase> with _$WorkoutDaoMixin {
         .get();
   }
 
-  // 更新训练记录
-  Future<bool> updateWorkoutSession(WorkoutSession entry) {
-    return update(db.workoutSessions).replace(entry);
-  }
-
-  // 更新训练记录相关的动作和组数据
-  Future<void> updateFullWorkout(FullWorkout fullWorkout) async {
-    return transaction(() async {
-      await update(db.workoutSessions).replace(fullWorkout.session);
-      for (final exercise in fullWorkout.exercises) {
-        await update(db.exercisesRecords).replace(exercise.exercise);
-        for (final set in exercise.sets) {
-          await update(db.setRecords).replace(set);
-        }
+  // 获取所有训练记录及其相关的动作和组数据
+  Future<List<FullWorkout>> getAllWorkoutSessionsWithExercises() async {
+    final sessions = await getAllWorkoutSessions();
+    final workouts = <FullWorkout>[];
+    for (final session in sessions) {
+      final workout = await getWorkoutSession(session.id);
+      if (workout != null) {
+        workouts.add(workout);
       }
-    });
+    }
+    return workouts;
   }
 
-  // 删除训练记录
-  Future<int> deleteWorkoutSession(int id) {
-    return (delete(db.workoutSessions)..where((t) => t.id.equals(id))).go();
+  // 根据时间范围获取训练记录及其相关的动作和组数据
+  Future<List<FullWorkout>> getWorkoutSessionsByDateRange(DateTime? from, DateTime? to) async {
+    final sessions = await (select(db.workoutSessions)
+          ..where((t) => t.startTime.isBetweenValues(from ?? DateTime(1970), to ?? DateTime.now())))
+        .get();
+    final workouts = <FullWorkout>[];
+    for (final session in sessions) {
+      final workout = await getWorkoutSession(session.id);
+      if (workout != null) {
+        workouts.add(workout);
+      }
+    }
+    return workouts;
+  }
+
+  // 获取所有肌肉组
+  Future<List<MuscleGroup>> getAllMuscleGroups()  {
+    return (select(db.muscleGroups)).get();
   }
 }
 
@@ -387,6 +447,11 @@ class FullExercise {
     this.anaerobicType,
     this.muscleGroup,
   });
+
+  @override
+  String toString() {
+    return 'FullExercise{exercise: $exercise, sets: $sets, anaerobicType: $anaerobicType, muscleGroup: $muscleGroup}';
+  }
 }
 
 class FullWorkout {
@@ -397,4 +462,9 @@ class FullWorkout {
     required this.session,
     required this.exercises,
   });
+
+  @override
+  String toString() {
+    return 'FullWorkout{session: $session, exercises: $exercises}';
+  }
 }
