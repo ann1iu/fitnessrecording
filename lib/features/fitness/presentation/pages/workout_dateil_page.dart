@@ -67,9 +67,9 @@ class WorkoutDetailPage extends ConsumerWidget {
                     ),
                     children: [
                       // 组列表
-                      ...ex.sets.indexed.map((Item) {
-                        final setIndex = Item.$1;
-                        final set = Item.$2;
+                      ...ex.sets.indexed.map((item) {
+                        final setIndex = item.$1;
+                        final set = item.$2;  
                         return SetRow(
                           set: set,
                           onChanged: (newSet) => ref

@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart';
 import 'package:fitnessrecording/core/database/database.dart';
 
 // Use FullWorkout from database.dart
