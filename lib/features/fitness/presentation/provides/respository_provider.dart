@@ -1,6 +1,6 @@
-import 'package:fitnessrecording/repositories/workout_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fitnessrecording/core/database/database.dart';
+import 'package:fitnessrecording/core/database/database.dart'; 
+import 'package:fitnessrecording/features/fitness/domain/repositories/workout_repository.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();

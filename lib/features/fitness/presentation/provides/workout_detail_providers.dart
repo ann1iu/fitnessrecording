@@ -1,17 +1,14 @@
 
 import 'package:fitnessrecording/core/database/database.dart';
 import 'package:fitnessrecording/features/fitness/presentation/provides/respository_provider.dart';
-import 'package:fitnessrecording/repositories/workout_repository.dart';
+import 'package:fitnessrecording/features/fitness/domain/repositories/workout_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 final workoutByIdStreamProvider = 
     StreamProvider.family<FullWorkout?, int>((ref, id) {
   final repository = ref.watch(workoutRepositoryProvider);
-  return repository.watchWorkouts().map((list) {
-    final match = list.where((w) => w.session.id == id);
-    return match.isEmpty ? null : match.first;
-  });
+  return Stream.fromFuture(repository.getWorkoutSessionById(id));
 });
 
 class WorkoutDetailEdit {

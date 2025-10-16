@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../provides/workout_stream_provider.dart' as wsp;
-import '../app_router.dart';
+import 'package:fitnessrecording/features/fitness/presentation/provides/workout_stream_provider.dart';
+import 'package:fitnessrecording/features/fitness/presentation/app_router.dart';
 
 /// 首页
 class HomePage extends ConsumerWidget{
   HomePage({super.key});
 
-  final currentFilterProvider = Provider<wsp.WorkoutFilter>((ref) {
+  final currentFilterProvider = Provider<WorkoutFilter>((ref) {
     final now = DateTime.now();
-    return wsp.WorkoutFilter(
-      from: now.subtract(const Duration(days: 7)),
+    return WorkoutFilter(
+      from: DateTime.parse('1970-01-01'),
       to: now,
     );
   });
@@ -19,7 +19,8 @@ class HomePage extends ConsumerWidget{
   @override
   Widget build(BuildContext context, WidgetRef ref) {
 
-    final workouts = ref.watch(wsp.workoutStreamProvider(ref.watch(currentFilterProvider)));
+    final filter = ref.watch(currentFilterProvider);
+    final workouts = ref.watch(workoutStreamProvider(filter));
 
     return Scaffold(
       appBar: AppBar(
